@@ -108,43 +108,66 @@
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
 
         // --- DATABASE OPERATIONS ---
-        async function fetchProjects() {
-            const { data } = await _supabase.from('projects').select('*').order('created_at', { ascending: false });
-            const tbody = document.getElementById('projectTableBody');
-            tbody.innerHTML = '';
-            
-            for (let p of data) {
-                const { data: timeline } = await _supabase.from('timeline').select('*').eq('project_id', p.id).order('created_at', { ascending: false });
-                
-                const row = `
-                    <tr class="hover:bg-emerald-50/50 cursor-pointer" onclick="toggleExpand('${p.id}')">
-                        <td class="px-6 py-4 font-bold text-gray-700">${p.name}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">${p.collaborators}</td>
-                        <td class="px-6 py-4 text-center" onclick="event.stopPropagation()">
-                            <button onclick="openUpdate('${p.id}')" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white">Update</button>
-                        </td>
-                    </tr>
-                    <tr id="expand-${p.id}" class="hidden bg-emerald-50/30">
-                        <td colspan="3" class="px-10 py-6">
-                            <div class="relative space-y-6 timeline-line ml-2">
-                                ${timeline.map(t => `
-                                    <div class="relative pl-8">
-                                        <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm"></div>
-                                        <div class="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm inline-block max-w-full">
-                                            <p class="text-sm text-gray-700 font-medium">${t.content}</p>
-                                            ${t.image_url ? `<img src="${t.image_url}" class="mt-3 rounded-lg max-h-40 w-auto">` : ''}
-                                            <div class="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">@${t.created_by} • ${new Date(t.created_at).toLocaleString()}</div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                                ${timeline.length === 0 ? '<p class="text-gray-400 text-sm">Belum ada update.</p>' : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            }
+       async function fetchProjects() {
+    // 1. Ambil data projects
+    const { data: projects, error: pError } = await _supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    // Cek jika ada error saat mengambil projects
+    if (pError) {
+        console.error("Error Database Projects:", pError.message);
+        return;
+    }
+
+    const tbody = document.getElementById('projectTableBody');
+    tbody.innerHTML = '';
+    
+    // 2. Loop setiap project untuk mengambil timeline-nya
+    for (let p of projects) {
+        const { data: timeline, error: tError } = await _supabase
+            .from('timeline')
+            .select('*')
+            // PAKSA project_id jadi angka (Number) untuk menghindari Error 400
+            .eq('project_id', Number(p.id)) 
+            .order('created_at', { ascending: false });
+
+        if (tError) {
+            console.error(`Error mengambil timeline untuk project ${p.id}:`, tError.message);
+            // Kita lanjut saja ke project berikutnya jika yang satu ini error
         }
+
+        const row = `
+            <tr class="hover:bg-emerald-50/50 cursor-pointer" onclick="toggleExpand('${p.id}')">
+                <td class="px-6 py-4 font-bold text-gray-700">${p.name}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${p.collaborators || '-'}</td>
+                <td class="px-6 py-4 text-center" onclick="event.stopPropagation()">
+                    <button onclick="openUpdate('${p.id}')" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white">Update</button>
+                </td>
+            </tr>
+            <tr id="expand-${p.id}" class="hidden bg-emerald-50/30">
+                <td colspan="3" class="px-10 py-6">
+                    <div class="relative space-y-6 timeline-line ml-2">
+                        ${(timeline || []).length > 0 ? timeline.map(t => `
+                            <div class="relative pl-8">
+                                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm"></div>
+                                <div class="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm inline-block max-w-full">
+                                    <p class="text-sm text-gray-700 font-medium">${t.content}</p>
+                                    ${t.image_url ? `<img src="${t.image_url}" class="mt-3 rounded-lg max-h-40 w-auto">` : ''}
+                                    <div class="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">
+                                        @${t.created_by || 'Anonymous'} • ${new Date(t.created_at).toLocaleString('id-ID')}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-gray-400 text-sm italic">Belum ada progres untuk project ini.</p>'}
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    }
+}
 
         async function createProject() {
             const name = document.getElementById('pName').value;
