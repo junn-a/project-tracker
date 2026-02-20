@@ -1,249 +1,196 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProTrack | Fresh Project Monitoring</title>
+    <title>ProTrack | Supabase Cloud Monitoring</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 10px; }
+        .timeline-line::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #ecfdf5; }
     </style>
 </head>
 <body class="bg-emerald-50 min-h-screen">
 
-    <div id="authOverlay" class="fixed inset-0 bg-emerald-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div id="authOverlay" class="fixed inset-0 bg-emerald-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center">
-            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <i class="fa-solid fa-leaf text-4xl"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome to ProTrack</h2>
-            <p class="text-gray-500 mb-8">Identify yourself to start collaborating.</p>
-            <input type="text" id="usernameInput" placeholder="Enter your name..." 
-                class="w-full px-5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none mb-4">
-            <button onclick="login()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-200">
-                Start Monitoring
-            </button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">ProTrack Cloud</h2>
+            <input type="text" id="usernameInput" placeholder="Nama Anda..." class="w-full px-5 py-3 rounded-xl border border-gray-200 mb-4 outline-none focus:ring-2 focus:ring-emerald-500">
+            <button onclick="login()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-emerald-700">Masuk</button>
         </div>
     </div>
 
     <div id="mainApp" class="hidden">
-        <nav class="bg-white border-b border-emerald-100 sticky top-0 z-40">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-20 items-center">
-                    <div class="flex items-center gap-2">
-                        <div class="p-2 bg-emerald-600 rounded-lg text-white">
-                            <i class="fa-solid fa-chart-line"></i>
-                        </div>
-                        <span class="text-xl font-bold text-emerald-900 tracking-tight">ProTrack</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-right hidden sm:block">
-                            <p class="text-sm font-semibold text-gray-800" id="currentUserDisplay"></p>
-                            <p class="text-xs text-emerald-600">Active Session</p>
-                        </div>
-                        <button onclick="logout()" class="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    </div>
-                </div>
+        <nav class="bg-white border-b border-emerald-100 sticky top-0 z-40 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2 font-bold text-emerald-800 text-xl"><i class="fa-solid fa-leaf"></i> ProTrack</div>
+            <div class="flex items-center gap-4 text-sm">
+                <span id="userDisplay" class="font-semibold"></span>
+                <button onclick="logout()" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </nav>
 
-        <main class="max-w-7xl mx-auto px-4 py-8">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Project Overview</h1>
-                    <p class="text-gray-500">Track and manage your team progress seamlessly.</p>
-                </div>
-                <button onclick="toggleModal('projectModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-semibold transition-all shadow-lg shadow-emerald-100">
-                    <i class="fa-solid fa-plus"></i> New Project
+        <main class="max-w-6xl mx-auto p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-2xl font-bold text-gray-800">Monitoring Project</h1>
+                <button onclick="toggleModal('projectModal')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:bg-emerald-700">
+                    + Project Baru
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div class="glass-card p-6 rounded-3xl border border-white shadow-sm">
-                    <p class="text-emerald-600 font-semibold text-sm mb-1">Total Projects</p>
-                    <h3 class="text-3xl font-bold text-gray-800" id="statTotal">0</h3>
-                </div>
-                <div class="glass-card p-6 rounded-3xl border border-white shadow-sm">
-                    <p class="text-blue-600 font-semibold text-sm mb-1">Active Collaborators</p>
-                    <h3 class="text-3xl font-bold text-gray-800" id="statCollab">0</h3>
-                </div>
-                <div class="glass-card p-6 rounded-3xl border border-white shadow-sm">
-                    <p class="text-amber-600 font-semibold text-sm mb-1">Pending Tasks</p>
-                    <h3 class="text-3xl font-bold text-gray-800" id="statTasks">0</h3>
-                </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-emerald-50 text-emerald-700 text-xs uppercase font-bold">
+                        <tr>
+                            <th class="px-6 py-4">Project</th>
+                            <th class="px-6 py-4">Tim</th>
+                            <th class="px-6 py-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectTableBody" class="divide-y divide-emerald-50"></tbody>
+                </table>
             </div>
-
-            <div id="projectGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                </div>
         </main>
     </div>
 
     <div id="projectModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[90vh] custom-scrollbar">
-            <div class="p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-bold text-gray-800">Create New Project</h3>
-                    <button onclick="toggleModal('projectModal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        <div class="bg-white w-full max-w-md rounded-2xl p-6">
+            <h3 class="text-xl font-bold mb-4">Buat Project</h3>
+            <div class="space-y-3">
+                <input type="text" id="pName" placeholder="Nama Project" class="w-full p-3 border rounded-xl outline-none focus:border-emerald-500">
+                <input type="text" id="pCollab" placeholder="Kolaborator (Andi, Budi)" class="w-full p-3 border rounded-xl outline-none focus:border-emerald-500">
+                <button onclick="createProject()" id="btnSave" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Simpan</button>
+                <button onclick="toggleModal('projectModal')" class="w-full text-gray-400 py-2">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="updateModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6">
+            <h3 class="text-xl font-bold mb-4">Update Progress</h3>
+            <div class="space-y-4">
+                <textarea id="upText" placeholder="Apa progresnya?" rows="3" class="w-full p-3 border rounded-xl outline-none"></textarea>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Lampirkan Foto (Opsional)</label>
+                    <input type="file" id="upFile" accept="image/*" class="text-sm">
                 </div>
-                <form id="projectForm" class="space-y-4">
-                    <input type="hidden" id="editId">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Project Name</label>
-                        <input type="text" id="pName" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Collaborators (comma separated)</label>
-                        <input type="text" id="pCollab" placeholder="e.g. Alex, Sarah, Budi" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Initial Phase</label>
-                        <textarea id="pPhase" rows="3" placeholder="e.g. Researching market trends..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all">Save Project</button>
-                </form>
+                <button onclick="submitUpdate()" id="btnUpdate" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold">Posting</button>
+                <button onclick="toggleModal('updateModal')" class="w-full text-gray-400 py-2">Batal</button>
             </div>
         </div>
     </div>
 
     <script>
-        let projects = JSON.parse(localStorage.getItem('protrack_data')) || [];
-        let currentUser = localStorage.getItem('protrack_user') || null;
+        // --- CONFIG SUPABASE ---
+        const SUPABASE_URL = 'https://jrdntfmfkuiqgkvpomdl.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_Y1UBcUZ5T69pU8pFjSYAHA_bHVXliyP';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Initialize App
-        window.onload = () => {
-            if(currentUser) {
-                showApp();
-            }
-        }
+        let currentUser = localStorage.getItem('protrack_user');
+        let activeProjectId = null;
+
+        window.onload = () => { if(currentUser) showApp(); }
 
         function login() {
-            const user = document.getElementById('usernameInput').value;
-            if(user.trim()) {
-                currentUser = user;
-                localStorage.setItem('protrack_user', user);
-                showApp();
-            }
+            const name = document.getElementById('usernameInput').value;
+            if(name) { currentUser = name; localStorage.setItem('protrack_user', name); showApp(); }
         }
-
-        function logout() {
-            localStorage.removeItem('protrack_user');
-            location.reload();
-        }
-
+        function logout() { localStorage.removeItem('protrack_user'); location.reload(); }
         function showApp() {
-            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('mainApp').classList.remove('hidden');
-            document.getElementById('currentUserDisplay').innerText = `Hello, ${currentUser}`;
-            renderProjects();
+            document.getElementById('userDisplay').innerText = `Halo, ${currentUser}`;
+            fetchProjects();
         }
 
-        function toggleModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.toggle('hidden');
-            if(modal.classList.contains('hidden')) {
-                document.getElementById('projectForm').reset();
-                document.getElementById('editId').value = '';
-            }
-        }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
 
-        // CRUD Operations
-        document.getElementById('projectForm').onsubmit = (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editId').value;
-            const newProject = {
-                id: id || Date.now().toString(),
-                name: document.getElementById('pName').value,
-                collaborators: document.getElementById('pCollab').value.split(',').map(s => s.trim()),
-                phases: [document.getElementById('pPhase').value],
-                updatedBy: currentUser,
-                updatedAt: new Date().toLocaleString()
-            };
-
-            if(id) {
-                const index = projects.findIndex(p => p.id === id);
-                projects[index] = {...projects[index], ...newProject, phases: [...projects[index].phases, newProject.phases[0]].filter(x => x) };
-            } else {
-                projects.push(newProject);
-            }
-
-            saveAndRender();
-            toggleModal('projectModal');
-        };
-
-        function deleteProject(id) {
-            if(confirm('Are you sure you want to delete this project?')) {
-                projects = projects.filter(p => p.id !== id);
-                saveAndRender();
-            }
-        }
-
-        function editProject(id) {
-            const p = projects.find(p => p.id === id);
-            document.getElementById('editId').value = p.id;
-            document.getElementById('pName').value = p.name;
-            document.getElementById('pCollab').value = p.collaborators.join(', ');
-            document.getElementById('pPhase').value = ''; // Reset phase for update
-            toggleModal('projectModal');
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('protrack_data', JSON.stringify(projects));
-            renderProjects();
-        }
-
-        function renderProjects() {
-            const grid = document.getElementById('projectGrid');
-            grid.innerHTML = '';
-
-            projects.forEach(p => {
-                const card = `
-                    <div class="glass-card rounded-3xl border border-emerald-100 shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300">
-                        <div class="p-6">
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full uppercase tracking-wider">Active</span>
-                                <div class="flex gap-2">
-                                    <button onclick="editProject('${p.id}')" class="text-gray-400 hover:text-emerald-600"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button onclick="deleteProject('${p.id}')" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
-                                </div>
+        // --- DATABASE OPERATIONS ---
+        async function fetchProjects() {
+            const { data } = await _supabase.from('projects').select('*').order('created_at', { ascending: false });
+            const tbody = document.getElementById('projectTableBody');
+            tbody.innerHTML = '';
+            
+            for (let p of data) {
+                const { data: timeline } = await _supabase.from('timeline').select('*').eq('project_id', p.id).order('created_at', { ascending: false });
+                
+                const row = `
+                    <tr class="hover:bg-emerald-50/50 cursor-pointer" onclick="toggleExpand('${p.id}')">
+                        <td class="px-6 py-4 font-bold text-gray-700">${p.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${p.collaborators}</td>
+                        <td class="px-6 py-4 text-center" onclick="event.stopPropagation()">
+                            <button onclick="openUpdate('${p.id}')" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white">Update</button>
+                        </td>
+                    </tr>
+                    <tr id="expand-${p.id}" class="hidden bg-emerald-50/30">
+                        <td colspan="3" class="px-10 py-6">
+                            <div class="relative space-y-6 timeline-line ml-2">
+                                ${timeline.map(t => `
+                                    <div class="relative pl-8">
+                                        <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm"></div>
+                                        <div class="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm inline-block max-w-full">
+                                            <p class="text-sm text-gray-700 font-medium">${t.content}</p>
+                                            ${t.image_url ? `<img src="${t.image_url}" class="mt-3 rounded-lg max-h-40 w-auto">` : ''}
+                                            <div class="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">@${t.created_by} • ${new Date(t.created_at).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${timeline.length === 0 ? '<p class="text-gray-400 text-sm">Belum ada update.</p>' : ''}
                             </div>
-                            <h4 class="text-xl font-bold text-gray-800 mb-2">${p.name}</h4>
-                            
-                            <div class="mb-4">
-                                <p class="text-xs text-gray-400 uppercase font-bold mb-2">Current Phase</p>
-                                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-sm text-emerald-800">
-                                    ${p.phases[p.phases.length - 1] || 'No phase defined'}
-                                </div>
-                            </div>
-
-                            <div class="flex flex-wrap gap-2 mb-6">
-                                ${p.collaborators.map(c => `<span class="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-md">@${c}</span>`).join('')}
-                            </div>
-                            
-                            <div class="pt-4 border-t border-gray-50 flex justify-between items-center">
-                                <div class="text-[10px] text-gray-400">
-                                    <p>Last update: ${p.updatedAt}</p>
-                                    <p>By: <span class="text-emerald-600 font-bold">${p.updatedBy}</span></p>
-                                </div>
-                                <i class="fa-solid fa-circle-check text-emerald-500"></i>
-                            </div>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
                 `;
-                grid.innerHTML += card;
-            });
-
-            // Update Stats
-            document.getElementById('statTotal').innerText = projects.length;
-            document.getElementById('statCollab').innerText = [...new Set(projects.flatMap(p => p.collaborators))].length;
-            document.getElementById('statTasks').innerText = projects.reduce((acc, p) => acc + p.phases.length, 0);
+                tbody.innerHTML += row;
+            }
         }
+
+        async function createProject() {
+            const name = document.getElementById('pName').value;
+            const collab = document.getElementById('pCollab').value;
+            const btn = document.getElementById('btnSave');
+            
+            btn.disabled = true; btn.innerText = "Saving...";
+            await _supabase.from('projects').insert([{ name, collaborators: collab }]);
+            
+            toggleModal('projectModal'); fetchProjects();
+            btn.disabled = false; btn.innerText = "Simpan";
+        }
+
+        function openUpdate(id) { activeProjectId = id; toggleModal('updateModal'); }
+
+        async function submitUpdate() {
+            const content = document.getElementById('upText').value;
+            const file = document.getElementById('upFile').files[0];
+            const btn = document.getElementById('btnUpdate');
+            let imgUrl = null;
+
+            btn.disabled = true; btn.innerText = "Uploading...";
+
+            if (file) {
+                const fileName = `${Date.now()}_${file.name}`;
+                const { data: uploadData } = await _supabase.storage.from('project-images').upload(fileName, file);
+                if (uploadData) {
+                    const { data: urlData } = _supabase.storage.from('project-images').getPublicUrl(fileName);
+                    imgUrl = urlData.publicUrl;
+                }
+            }
+
+            await _supabase.from('timeline').insert([{ 
+                project_id: activeProjectId, 
+                content: content, 
+                created_by: currentUser,
+                image_url: imgUrl 
+            }]);
+
+            toggleModal('updateModal'); fetchProjects();
+            btn.disabled = false; btn.innerText = "Posting";
+            document.getElementById('upText').value = '';
+            document.getElementById('upFile').value = '';
+        }
+
+        function toggleExpand(id) { document.getElementById(`expand-${id}`).classList.toggle('hidden'); }
     </script>
 </body>
 </html>
